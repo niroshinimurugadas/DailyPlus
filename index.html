@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyPlus | Modern To-Do & Analytics</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="icon">✨</span>
+                <h1>DailyPlus</h1>
+            </div>
+            <nav>
+                <button class="nav-btn active" data-view="tasks">
+                    <span class="icon">📋</span> My Tasks
+                </button>
+                <button class="nav-btn" data-view="routines">
+                    <span class="icon">🔄</span> Routines
+                </button>
+                <button class="nav-btn" data-view="analytics">
+                    <span class="icon">📊</span> Analytics
+                </button>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h2 id="view-title">My Tasks</h2>
+                <div class="date-display" id="current-date">Sunday, Feb 22</div>
+            </header>
+
+            <section id="tasks-view" class="view-section">
+                <div class="input-group">
+                    <input type="text" id="task-input" placeholder="What needs to be done?">
+                    <button id="add-task-btn">Add Task</button>
+                </div>
+                <div class="task-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="active">Active</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                </div>
+                <ul id="task-list" class="task-list">
+                    <!-- Tasks will be injected here -->
+                </ul>
+            </section>
+
+            <section id="routines-view" class="view-section hidden">
+                <div class="input-group">
+                    <input type="text" id="routine-input" placeholder="Add a daily routine...">
+                    <button id="add-routine-btn">Add Routine</button>
+                </div>
+                <p class="section-hint">These tasks reset every day at midnight.</p>
+                <ul id="routine-list" class="task-list">
+                    <!-- Routines will be injected here -->
+                </ul>
+            </section>
+
+            <section id="analytics-view" class="view-section hidden">
+                <div class="chart-container">
+                    <canvas id="completionChart"></canvas>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stats-total">0</span>
+                        <span class="stat-label">Total Completed</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stats-streak">0</span>
+                        <span class="stat-label">Day Streak</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
