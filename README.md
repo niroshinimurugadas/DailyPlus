@@ -75,7 +75,7 @@ At the end of each day:
 ## 💻 How to Run Locally
 
 1. Clone the repository:
-2. git clone https://github.com/niroshinimurugadas/DailyPulse.git
+2. git clone https://niroshinimurugadas.github.io/DailyPlus/
 
 
 2. Navigate into the project folder:
