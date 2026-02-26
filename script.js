@@ -3,6 +3,8 @@ let state = {
     tasks: JSON.parse(localStorage.getItem('stellar_tasks')) || [],
     routines: JSON.parse(localStorage.getItem('stellar_routines')) || [],
     analytics: JSON.parse(localStorage.getItem('stellar_analytics')) || {},
+    currentStreak: parseInt(localStorage.getItem('stellar_current_streak')) || 0,
+    maxStreak: parseInt(localStorage.getItem('stellar_max_streak')) || 0,
     currentView: 'tasks',
     filter: 'all',
     lastResetDate: localStorage.getItem('stellar_last_reset') || new Date().toDateString()
@@ -43,7 +45,35 @@ function updateDateDisplay() {
 function checkDailyReset() {
     const today = new Date().toDateString();
     if (state.lastResetDate !== today) {
-        // Reset routines completion status
+        // --- Streak Logic ---
+        // Check if all routines were done yesterday
+        const yesterday = state.lastResetDate;
+        const yesterdayData = state.analytics[yesterday];
+
+        // Ensure "Yesterday" analytics bit is finalized
+        const allRoutinesDone = state.routines.length > 0 && state.routines.every(r => r.completed);
+
+        // Update analytics for the day that just passed (archiving)
+        if (!state.analytics[yesterday]) {
+            state.analytics[yesterday] = { completions: 0, allDone: false };
+        }
+        if (typeof state.analytics[yesterday] === 'number') {
+            state.analytics[yesterday] = { completions: state.analytics[yesterday], allDone: allRoutinesDone };
+        } else {
+            state.analytics[yesterday].allDone = allRoutinesDone;
+        }
+
+        if (allRoutinesDone) {
+            state.currentStreak++;
+            if (state.currentStreak > state.maxStreak) {
+                state.maxStreak = state.currentStreak;
+            }
+        } else if (state.routines.length > 0) {
+            // Only reset if there actually were routines to do
+            state.currentStreak = 0;
+        }
+
+        // Reset routines completion status for the new day
         state.routines = state.routines.map(r => ({ ...r, completed: false }));
         state.lastResetDate = today;
         saveState();
@@ -55,6 +85,8 @@ function saveState() {
     localStorage.setItem('stellar_routines', JSON.stringify(state.routines));
     localStorage.setItem('stellar_analytics', JSON.stringify(state.analytics));
     localStorage.setItem('stellar_last_reset', state.lastResetDate);
+    localStorage.setItem('stellar_current_streak', state.currentStreak);
+    localStorage.setItem('stellar_max_streak', state.maxStreak);
 }
 
 function addTask() {
@@ -147,15 +179,14 @@ function updateAnalytics(change) {
 
     // Support legacy (if any) or new structure
     if (typeof state.analytics[today] === 'number') {
-        state.analytics[today] = { completions: state.analytics[today], allDone: state.analytics[today] > 0 };
+        state.analytics[today] = { completions: state.analytics[today], allDone: false };
     }
 
     state.analytics[today].completions = Math.max(0, state.analytics[today].completions + change);
 
-    // Check if everything is done
-    const allTasksDone = state.tasks.length > 0 && state.tasks.every(t => t.completed);
+    // For streak purposes, we define "allDone" as all ROUTINES completed
     const allRoutinesDone = state.routines.length > 0 && state.routines.every(r => r.completed);
-    state.analytics[today].allDone = (allTasksDone && allRoutinesDone);
+    state.analytics[today].allDone = allRoutinesDone;
 
     if (completionChart) updateChart();
     updateStatsText();
@@ -203,21 +234,14 @@ function updateStatsText() {
         const count = typeof val === 'object' ? val.completions : val;
         return acc + count;
     }, 0);
-    document.getElementById('stats-total').textContent = totalCompleted;
 
-    // Calculate streak (consecutive days where ALL tasks were completed)
-    let streak = 0;
-    let d = new Date();
-    while (true) {
-        const dayData = state.analytics[d.toDateString()];
-        if (dayData && (dayData.allDone || (typeof dayData === 'number' && dayData > 0))) {
-            streak++;
-            d.setDate(d.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-    document.getElementById('stats-streak').textContent = streak;
+    const statsTotal = document.getElementById('stats-total');
+    const statsStreak = document.getElementById('stats-streak');
+    const statsMaxStreak = document.getElementById('stats-max-streak');
+
+    if (statsTotal) statsTotal.textContent = totalCompleted;
+    if (statsStreak) statsStreak.textContent = state.currentStreak;
+    if (statsMaxStreak) statsMaxStreak.textContent = state.maxStreak;
 }
 
 // --- Chart Integration ---
@@ -238,8 +262,9 @@ function initChart() {
                 borderWidth: 3,
                 tension: 0.4,
                 fill: true,
-                pointBackgroundColor: '#7d5fff',
-                pointRadius: 5
+                pointBackgroundColor: data.pointBackgrounds,
+                pointRadius: data.pointRadii,
+                pointHoverRadius: 8
             }]
         },
         options: {
@@ -267,12 +292,17 @@ function updateChart() {
     const data = getChartData();
     completionChart.data.labels = data.labels;
     completionChart.data.datasets[0].data = data.values;
+    completionChart.data.datasets[0].pointBackgroundColor = data.pointBackgrounds;
+    completionChart.data.datasets[0].pointRadius = data.pointRadii;
     completionChart.update();
 }
 
 function getChartData() {
     const labels = [];
     const values = [];
+    const pointBackgrounds = [];
+    const pointRadii = [];
+
     // Show 30 days for monthly view
     for (let i = 29; i >= 0; i--) {
         const d = new Date();
@@ -291,9 +321,13 @@ function getChartData() {
 
         const dayData = state.analytics[dayStr];
         const count = typeof dayData === 'object' ? dayData.completions : (dayData || 0);
+        const isPerfect = typeof dayData === 'object' ? dayData.allDone : false;
+
         values.push(count);
+        pointBackgrounds.push(isPerfect ? '#32ff7e' : '#7d5fff'); // Success green for perfect days
+        pointRadii.push(isPerfect ? 8 : 4); // Larger points for perfect days
     }
-    return { labels, values };
+    return { labels, values, pointBackgrounds, pointRadii };
 }
 
 // --- Event Listeners ---
